@@ -1,43 +1,63 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
-import { Wallet, TrendingUp, History, Plus, ArrowUpDown } from "lucide-react"
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import { Wallet, TrendingUp, History, Plus, ArrowUpDown } from "lucide-react";
 
 interface Currency {
-  code: string
-  name: string
-  symbol: string
+  code: string;
+  name: string;
+  symbol: string;
 }
 
 interface Balance {
-  currency: string
-  amount: number
-  symbol: string
+  currency: string;
+  amount: number;
+  symbol: string;
 }
 
 interface Transaction {
-  id: string
-  type: "deposit" | "withdrawal" | "transfer"
-  currency: string
-  amount: number
-  description: string
-  date: string
-  symbol: string
+  id: string;
+  type: "deposit" | "withdrawal" | "transfer";
+  currency: string;
+  amount: number;
+  description: string;
+  date: string;
+  symbol: string;
 }
 
 interface ExchangeRate {
-  from: string
-  to: string
-  rate: number
-  date: string
+  from: string;
+  to: string;
+  rate: number;
+  date: string;
 }
 
 const currencies: Currency[] = [
@@ -45,7 +65,7 @@ const currencies: Currency[] = [
   { code: "EUR", name: "יורו", symbol: "€" },
   { code: "GBP", name: "פאונד בריטי", symbol: "£" },
   { code: "ILS", name: "שקל ישראלי", symbol: "₪" },
-]
+];
 
 const mockExchangeRates: ExchangeRate[] = [
   { from: "USD", to: "ILS", rate: 3.75, date: "2024-01-15" },
@@ -54,27 +74,48 @@ const mockExchangeRates: ExchangeRate[] = [
   { from: "ILS", to: "USD", rate: 0.267, date: "2024-01-15" },
   { from: "ILS", to: "EUR", rate: 0.244, date: "2024-01-15" },
   { from: "ILS", to: "GBP", rate: 0.211, date: "2024-01-15" },
-]
-
-const mockHistoricalRates = [
-  { date: "2024-01-01", rate: 3.72 },
-  { date: "2024-01-02", rate: 3.74 },
-  { date: "2024-01-03", rate: 3.73 },
-  { date: "2024-01-04", rate: 3.76 },
-  { date: "2024-01-05", rate: 3.75 },
-  { date: "2024-01-06", rate: 3.77 },
-  { date: "2024-01-07", rate: 3.75 },
-  { date: "2024-01-08", rate: 3.78 },
-  { date: "2024-01-09", rate: 3.76 },
-  { date: "2024-01-10", rate: 3.75 },
-]
+];
 
 export default function MiniCurrencyWallet() {
+  const [historicalRates, setHistoricalRates] = useState<
+    { date: string; rate: number }[]
+  >([]);
+
+  // Fetch historical rates for the last 10 days and auto-refresh every 60 seconds
+  useEffect(() => {
+    const fetchRates = async () => {
+      // Calculate last 10 days
+      const end = new Date();
+      const start = new Date();
+      start.setDate(end.getDate() - 9);
+      const format = (d: Date) => d.toISOString().slice(0, 10);
+      const url = `/backend/get_rates.php?currency=USD&start=${format(
+        start
+      )}&end=${format(end)}`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Network response was not ok");
+        const data = await res.json();
+        // data: [{currency, rate, date}...]
+        setHistoricalRates(
+          Array.isArray(data)
+            ? data.map((item) => ({ date: item.date, rate: Number(item.rate) }))
+            : []
+        );
+      } catch (err) {
+        setHistoricalRates([]);
+      }
+    };
+    fetchRates();
+    const interval = setInterval(fetchRates, 60000); // 60 seconds
+    return () => clearInterval(interval);
+  }, []);
+
   const [balances, setBalances] = useState<Balance[]>([
     { currency: "USD", amount: 1000, symbol: "$" },
     { currency: "EUR", amount: 500, symbol: "€" },
     { currency: "ILS", amount: 2000, symbol: "₪" },
-  ])
+  ]);
 
   const [transactions, setTransactions] = useState<Transaction[]>([
     {
@@ -95,38 +136,40 @@ export default function MiniCurrencyWallet() {
       date: "2024-01-14T15:30:00Z",
       symbol: "€",
     },
-  ])
+  ]);
 
-  const [displayCurrency, setDisplayCurrency] = useState("ILS")
-  const [depositAmount, setDepositAmount] = useState("")
-  const [depositCurrency, setDepositCurrency] = useState("USD")
-  const [depositDescription, setDepositDescription] = useState("")
+  const [displayCurrency, setDisplayCurrency] = useState("ILS");
+  const [depositAmount, setDepositAmount] = useState("");
+  const [depositCurrency, setDepositCurrency] = useState("USD");
+  const [depositDescription, setDepositDescription] = useState("");
 
   const getExchangeRate = (from: string, to: string): number => {
-    if (from === to) return 1
-    const rate = mockExchangeRates.find((r) => r.from === from && r.to === to)
-    return rate?.rate || 1
-  }
+    if (from === to) return 1;
+    const rate = mockExchangeRates.find((r) => r.from === from && r.to === to);
+    return rate?.rate || 1;
+  };
 
   const convertAmount = (amount: number, from: string, to: string): number => {
-    const rate = getExchangeRate(from, to)
-    return amount * rate
-  }
+    const rate = getExchangeRate(from, to);
+    return amount * rate;
+  };
 
   const getTotalBalance = (): number => {
-    return balances.reduce((total, balance) => {
-      return total + convertAmount(balance.amount, balance.currency, displayCurrency)
-    }, 0)
-  }
+    return balances.reduce((total: number, balance: Balance) => {
+      return (
+        total + convertAmount(balance.amount, balance.currency, displayCurrency)
+      );
+    }, 0);
+  };
 
   const getCurrencySymbol = (currencyCode: string): string => {
-    return currencies.find((c) => c.code === currencyCode)?.symbol || ""
-  }
+    return currencies.find((c) => c.code === currencyCode)?.symbol || "";
+  };
 
   const handleDeposit = () => {
-    if (!depositAmount || Number.parseFloat(depositAmount) <= 0) return
+    if (!depositAmount || Number.parseFloat(depositAmount) <= 0) return;
 
-    const amount = Number.parseFloat(depositAmount)
+    const amount = Number.parseFloat(depositAmount);
     const newTransaction: Transaction = {
       id: Date.now().toString(),
       type: "deposit",
@@ -135,14 +178,20 @@ export default function MiniCurrencyWallet() {
       description: depositDescription || "הפקדה",
       date: new Date().toISOString(),
       symbol: getCurrencySymbol(depositCurrency),
-    }
+    };
 
-    setTransactions((prev) => [newTransaction, ...prev])
+    setTransactions((prev) => [newTransaction, ...prev]);
 
-    setBalances((prev) => {
-      const existingBalance = prev.find((b) => b.currency === depositCurrency)
+    setBalances((prev: Balance[]) => {
+      const existingBalance = prev.find(
+        (b: Balance) => b.currency === depositCurrency
+      );
       if (existingBalance) {
-        return prev.map((b) => (b.currency === depositCurrency ? { ...b, amount: b.amount + amount } : b))
+        return prev.map((b: Balance) =>
+          b.currency === depositCurrency
+            ? { ...b, amount: b.amount + amount }
+            : b
+        );
       } else {
         return [
           ...prev,
@@ -151,13 +200,13 @@ export default function MiniCurrencyWallet() {
             amount,
             symbol: getCurrencySymbol(depositCurrency),
           },
-        ]
+        ];
       }
-    })
+    });
 
-    setDepositAmount("")
-    setDepositDescription("")
-  }
+    setDepositAmount("");
+    setDepositDescription("");
+  };
 
   const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString("he-IL", {
@@ -166,24 +215,27 @@ export default function MiniCurrencyWallet() {
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    })
-  }
+    });
+  };
 
   const getTransactionTypeText = (type: string): string => {
     switch (type) {
       case "deposit":
-        return "הפקדה"
+        return "הפקדה";
       case "withdrawal":
-        return "משיכה"
+        return "משיכה";
       case "transfer":
-        return "העברה"
+        return "העברה";
       default:
-        return type
+        return type;
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4" dir="rtl">
+    <div
+      className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4"
+      dir="rtl"
+    >
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
@@ -199,7 +251,10 @@ export default function MiniCurrencyWallet() {
           <CardContent className="p-4">
             <div className="flex items-center gap-4">
               <Label htmlFor="display-currency">מטבע תצוגה:</Label>
-              <Select value={displayCurrency} onValueChange={setDisplayCurrency}>
+              <Select
+                value={displayCurrency}
+                onValueChange={setDisplayCurrency}
+              >
                 <SelectTrigger className="w-48">
                   <SelectValue />
                 </SelectTrigger>
@@ -246,7 +301,12 @@ export default function MiniCurrencyWallet() {
                 <Card key={balance.currency}>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg flex items-center justify-between">
-                      <span>{currencies.find((c) => c.code === balance.currency)?.name}</span>
+                      <span>
+                        {
+                          currencies.find((c) => c.code === balance.currency)
+                            ?.name
+                        }
+                      </span>
                       <Badge variant="secondary">{balance.currency}</Badge>
                     </CardTitle>
                   </CardHeader>
@@ -260,7 +320,11 @@ export default function MiniCurrencyWallet() {
                       </p>
                       <p className="text-sm text-gray-600">
                         ≈{" "}
-                        {convertAmount(balance.amount, balance.currency, displayCurrency).toLocaleString("he-IL", {
+                        {convertAmount(
+                          balance.amount,
+                          balance.currency,
+                          displayCurrency
+                        ).toLocaleString("he-IL", {
                           minimumFractionDigits: 2,
                         })}{" "}
                         {getCurrencySymbol(displayCurrency)}
@@ -286,7 +350,10 @@ export default function MiniCurrencyWallet() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="deposit-currency">מטבע</Label>
-                    <Select value={depositCurrency} onValueChange={setDepositCurrency}>
+                    <Select
+                      value={depositCurrency}
+                      onValueChange={setDepositCurrency}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -341,14 +408,21 @@ export default function MiniCurrencyWallet() {
               <CardContent>
                 <div className="space-y-4">
                   {transactions.length === 0 ? (
-                    <p className="text-center text-gray-500 py-8">אין עסקאות עדיין</p>
+                    <p className="text-center text-gray-500 py-8">
+                      אין עסקאות עדיין
+                    </p>
                   ) : (
                     transactions.map((transaction) => (
-                      <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div
+                        key={transaction.id}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
                         <div className="flex items-center gap-3">
                           <div
                             className={`p-2 rounded-full ${
-                              transaction.type === "deposit" ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
+                              transaction.type === "deposit"
+                                ? "bg-green-100 text-green-600"
+                                : "bg-red-100 text-red-600"
                             }`}
                           >
                             {transaction.type === "deposit" ? (
@@ -358,9 +432,15 @@ export default function MiniCurrencyWallet() {
                             )}
                           </div>
                           <div>
-                            <p className="font-medium">{getTransactionTypeText(transaction.type)}</p>
-                            <p className="text-sm text-gray-600">{transaction.description}</p>
-                            <p className="text-xs text-gray-500">{formatDate(transaction.date)}</p>
+                            <p className="font-medium">
+                              {getTransactionTypeText(transaction.type)}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {transaction.description}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {formatDate(transaction.date)}
+                            </p>
                           </div>
                         </div>
                         <div className="text-left">
@@ -370,7 +450,9 @@ export default function MiniCurrencyWallet() {
                             })}{" "}
                             {transaction.symbol}
                           </p>
-                          <p className="text-sm text-gray-600">{transaction.currency}</p>
+                          <p className="text-sm text-gray-600">
+                            {transaction.currency}
+                          </p>
                         </div>
                       </div>
                     ))
@@ -395,10 +477,15 @@ export default function MiniCurrencyWallet() {
                   {mockExchangeRates
                     .filter((rate) => rate.to === "ILS")
                     .map((rate) => (
-                      <div key={`${rate.from}-${rate.to}`} className="p-4 border rounded-lg">
+                      <div
+                        key={`${rate.from}-${rate.to}`}
+                        className="p-4 border rounded-lg"
+                      >
                         <div className="flex justify-between items-center">
                           <span className="font-medium">{rate.from}/ILS</span>
-                          <span className="text-lg font-bold">{rate.rate.toFixed(4)}</span>
+                          <span className="text-lg font-bold">
+                            {rate.rate.toFixed(4)}
+                          </span>
                         </div>
                         <p className="text-sm text-gray-600 mt-1">
                           1 {rate.from} = {rate.rate.toFixed(4)} ₪
@@ -413,18 +500,23 @@ export default function MiniCurrencyWallet() {
             <Card>
               <CardHeader>
                 <CardTitle>גרף היסטורי - USD/ILS</CardTitle>
-                <CardDescription>שער החליפין של הדולר מול השקל ב-10 הימים האחרונים</CardDescription>
+                <CardDescription>
+                  שער החליפין של הדולר מול השקל ב-10 הימים האחרונים
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={mockHistoricalRates}>
+                    <LineChart data={historicalRates}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="date" />
                       <YAxis domain={["dataMin - 0.02", "dataMax + 0.02"]} />
                       <Tooltip
                         labelFormatter={(value) => `תאריך: ${value}`}
-                        formatter={(value: any) => [`${value.toFixed(4)} ₪`, "שער"]}
+                        formatter={(value: any) => [
+                          `${value?.toFixed(4) ?? "-"} ₪`,
+                          "שער",
+                        ]}
                       />
                       <Line
                         type="monotone"
@@ -442,5 +534,5 @@ export default function MiniCurrencyWallet() {
         </Tabs>
       </div>
     </div>
-  )
+  );
 }
