@@ -1,43 +1,33 @@
 services:
-  app:
-    build: .
+  # Next.js Frontend Service
+  frontend:
+    build:
+      context: . # ה-Dockerfile של ה-Next.js נמצא בתיקיית הבסיס של הפרויקט
+      dockerfile: Dockerfile # זהו ה-Dockerfile של Next.js ששיתפת
     ports:
-      - "3000:3000"
+      - "3001:3000" # שינוי פורט חיצוני ל-3001 כדי למנוע התנגשות
     environment:
       - NODE_ENV=production
     volumes:
-      - ./data:/app/data
+      - ./data:/app/data # אם הפרונטאנד שלך דורש גישה לנתונים ספציפיים
+    depends_on:
+      - backend # הפרונטאנד תלוי בבאקאנד כדי לתקשר איתו
     restart: unless-stopped
 
-  # Optional: Add a reverse proxy
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-    depends_on:
-      - app
-    restart: unless-stopped
-
-  frontend:
-    build: .
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
-
+  # PHP Backend Service
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: ./backend # נתיב לתיקיית הבאקאנד שלך (שם קוד ה-PHP נמצא)
+      dockerfile: Dockerfile # ה-Dockerfile הספציפי של ה-PHP בתוך תיקיית ./backend
     volumes:
-      - ./backend:/var/www/html
+      - ./backend:/var/www/html # מיפוי קוד המקור של ה-PHP לתוך הקונטיינר
     ports:
-      - "8000:80"
+      - "8000:80" # פורט 8000 על המארח ממופה לפורט 80 בתוך קונטיינר ה-PHP
     depends_on:
-      - db
+      - db # הבאקאנד תלוי במסד הנתונים
+    restart: unless-stopped
 
+  # MySQL Database Service
   db:
     image: mysql:8.0
     restart: always
@@ -47,9 +37,21 @@ services:
       MYSQL_PASSWORD: password
       MYSQL_ROOT_PASSWORD: rootpassword
     ports:
-      - "3306:3306"
+      - "3306:3306" # פורט 3306 על המארח ממופה לפורט 3306 בתוך הקונטיינר
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data:/var/lib/mysql # שמירת נתוני מסד הנתונים בנפח (volume) קבוע
+
+  # Nginx Reverse Proxy Service
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80" # פורט 80 על המארח ממופה לפורט 80 בתוך קונטיינר Nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf # מיפוי קובץ הקונפיגורציה של Nginx
+    depends_on:
+      - frontend # Nginx צריך שהפרונטאנד יהיה זמין
+      - backend  # Nginx צריך שהבאקאנד יהיה זמין
+    restart: unless-stopped
 
 volumes:
-  db_data:
+  db_data: # הגדרת הנפח (volume) עבור נתוני מסד הנתונים

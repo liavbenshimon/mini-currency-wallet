@@ -46,7 +46,7 @@ cd Mini-Currency-Wallet
 docker-compose up --build
 ```
 
-- הממשק: http://localhost:3000
+- הממשק: http://localhost:3001
 - ה-API (PHP): http://localhost:8000
 
 ### עצירת הפרויקט
@@ -132,7 +132,7 @@ Mini-Currency-Wallet/
 ## פתרון בעיות
 
 - בדוק לוגים: `docker-compose logs`
-- ודא שפורטים 3000 ו-8000 פנויים
+- ודא שפורטים 3001 ו-8000 פנויים
 - לבעיות DB: ודא שהפרטים ב-.env תואמים ל-docker-compose.yml ול-backend/config.php
 - בעיות הרשאות (בלינוקס):
 
