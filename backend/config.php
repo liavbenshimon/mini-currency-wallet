@@ -3,11 +3,11 @@
 return [
     'db' => [
         'host' => 'db',
-        'dbname' => 'currency_wallet',
         'user' => 'user',
         'pass' => 'password',
+        'name' => 'currency_wallet',
     ],
     'boi_api' => [
-        'base_url' => 'https://edge.boi.gov.il/FusionEdgeServer/sdmx/v2/data/dataflow/BOI.STATISTICS/EXR/1.0/',
+        'base_url' => 'https://edge.boi.gov.il/FusionEdgeServer/sdmx/v2/data/EXR',
     ],
 ];
