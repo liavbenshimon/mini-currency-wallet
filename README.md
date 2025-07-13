@@ -62,11 +62,10 @@ This will build and start all required services:
 
 ## 4. Database Migrations (Automatic)
 
-- The backend includes an automatic migration script (`backend/migrate.php`).
-- Every time you start the project with Docker Compose, the migration script will run before any seed data is inserted.
-- This ensures your database schema is always up-to-date with the latest structure.
+- The backend is configured to run the migration (`backend/migrate.php`) and initialization (`backend/init_db.php`) scripts automatically every time you start the project with Docker Compose.
+- This ensures your database schema is always up-to-date with the latest structure, and any required tables are created.
 - **You do not need to manually create or update tables.**
-- If you want to add new tables or columns, simply update `migrate.php` with the relevant SQL.
+- If you want to add new tables or columns, simply update `migrate.php` or `init_db.php` with the relevant SQL.
 
 ---
 
@@ -148,6 +147,7 @@ INSERT INTO exchange_rates (currency, rate, date) VALUES
 - `app/` – Frontend (React/Next.js)
 - `backend/` – Backend (PHP API scripts)
 - `backend/migrate.php` – Database migration script (runs automatically)
+- `backend/init_db.php` – Database initialization script (runs automatically)
 - `backend/fetch_rates.php` – Script to fetch real exchange rates from Bank of Israel
 - `backend/get_rates.php` – API endpoint for frontend to get rates
 - `backend/save_transaction.php` – API endpoint to save transactions
