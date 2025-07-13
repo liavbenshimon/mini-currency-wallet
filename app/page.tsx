@@ -89,7 +89,7 @@ export default function MiniCurrencyWallet() {
       const start = new Date();
       start.setDate(end.getDate() - 9);
       const format = (d: Date) => d.toISOString().slice(0, 10);
-      const url = `http://localhost:3001/backend/get_rates.php?currency=USD&start=${format(
+      const url = `http://localhost/backend/get_rates.php?currency=USD&start=${format(
         start
       )}&end=${format(end)}`;
       try {
@@ -111,37 +111,67 @@ export default function MiniCurrencyWallet() {
     return () => clearInterval(interval);
   }, []);
 
-  const [balances, setBalances] = useState<Balance[]>([
-    { currency: "USD", amount: 1000, symbol: "$" },
-    { currency: "EUR", amount: 500, symbol: "€" },
-    { currency: "ILS", amount: 2000, symbol: "₪" },
-  ]);
-
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: "1",
-      type: "deposit",
-      currency: "USD",
-      amount: 1000,
-      description: "הפקדה ראשונית",
-      date: "2024-01-15T10:00:00Z",
-      symbol: "$",
-    },
-    {
-      id: "2",
-      type: "deposit",
-      currency: "EUR",
-      amount: 500,
-      description: "הפקדת יורו",
-      date: "2024-01-14T15:30:00Z",
-      symbol: "€",
-    },
-  ]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [balances, setBalances] = useState<Balance[]>([]);
 
   const [displayCurrency, setDisplayCurrency] = useState("ILS");
   const [depositAmount, setDepositAmount] = useState("");
   const [depositCurrency, setDepositCurrency] = useState("USD");
   const [depositDescription, setDepositDescription] = useState("");
+
+  const getCurrencySymbol = (currencyCode: string): string => {
+    const knownCurrencies = [
+      { code: "USD", symbol: "$" },
+      { code: "EUR", symbol: "€" },
+      { code: "ILS", symbol: "₪" },
+      { code: "GBP", symbol: "£" },
+    ];
+    return knownCurrencies.find((c) => c.code === currencyCode)?.symbol || "";
+  };
+
+  const fetchAllData = async () => {
+    try {
+      const transactionsRes = await fetch("/backend/get_transactions.php");
+      if (!transactionsRes.ok) throw new Error("Failed to fetch transactions");
+      const fetchedTransactions: Transaction[] = await transactionsRes.json();
+      const transactionsWithSymbols = fetchedTransactions
+        .map((tx) => ({
+          ...tx,
+          amount: Number(tx.amount),
+          symbol: getCurrencySymbol(tx.currency),
+          date: new Date(tx.date).toISOString(),
+        }))
+        .sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+      setTransactions(transactionsWithSymbols);
+      const calculatedBalances: { [key: string]: number } = {};
+      transactionsWithSymbols.forEach((tx) => {
+        if (tx.type === "deposit") {
+          calculatedBalances[tx.currency] =
+            (calculatedBalances[tx.currency] || 0) + tx.amount;
+        } else if (tx.type === "withdrawal") {
+          calculatedBalances[tx.currency] =
+            (calculatedBalances[tx.currency] || 0) - tx.amount;
+        }
+      });
+      const balancesArray: Balance[] = Object.keys(calculatedBalances).map(
+        (currencyCode) => ({
+          currency: currencyCode,
+          amount: calculatedBalances[currencyCode],
+          symbol: getCurrencySymbol(currencyCode),
+        })
+      );
+      setBalances(balancesArray);
+    } catch (error) {
+      setTransactions([]);
+      setBalances([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllData();
+  }, []);
 
   const getExchangeRate = (from: string, to: string): number => {
     if (from === to) return 1;
@@ -162,11 +192,7 @@ export default function MiniCurrencyWallet() {
     }, 0);
   };
 
-  const getCurrencySymbol = (currencyCode: string): string => {
-    return currencies.find((c) => c.code === currencyCode)?.symbol || "";
-  };
-
-  const handleDeposit = () => {
+  const handleDeposit = async () => {
     if (!depositAmount || Number.parseFloat(depositAmount) <= 0) return;
 
     const amount = Number.parseFloat(depositAmount);
@@ -180,32 +206,30 @@ export default function MiniCurrencyWallet() {
       symbol: getCurrencySymbol(depositCurrency),
     };
 
-    setTransactions((prev) => [newTransaction, ...prev]);
-
-    setBalances((prev: Balance[]) => {
-      const existingBalance = prev.find(
-        (b: Balance) => b.currency === depositCurrency
-      );
-      if (existingBalance) {
-        return prev.map((b: Balance) =>
-          b.currency === depositCurrency
-            ? { ...b, amount: b.amount + amount }
-            : b
-        );
+    // שלח לשרת
+    try {
+      const res = await fetch("/backend/save_transaction.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "deposit",
+          amount,
+          currency: depositCurrency,
+          description: depositDescription || "הפקדה",
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        await fetchAllData();
+        setDepositAmount("");
+        setDepositDescription("");
+        alert("הפקדה בוצעה בהצלחה!");
       } else {
-        return [
-          ...prev,
-          {
-            currency: depositCurrency,
-            amount,
-            symbol: getCurrencySymbol(depositCurrency),
-          },
-        ];
+        alert(data.error || "שגיאה בשמירת ההפקדה");
       }
-    });
-
-    setDepositAmount("");
-    setDepositDescription("");
+    } catch (err) {
+      alert("שגיאה בחיבור לשרת. אנא נסה שוב.");
+    }
   };
 
   const formatDate = (dateString: string): string => {
