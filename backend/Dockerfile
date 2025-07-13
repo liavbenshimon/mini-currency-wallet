@@ -14,7 +14,11 @@ WORKDIR /var/www/html
 # Copy source code
 COPY . .
 
+# Add wait-for-it script to ensure DB is ready before running migrations
+ADD https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh /usr/local/bin/wait-for-it.sh
+RUN chmod +x /usr/local/bin/wait-for-it.sh
+
 # Expose port 80
 EXPOSE 80
 
-CMD ["sh", "-c", "php migrate.php && php init_db.php && php fetch_rates.php && apache2-foreground"]
+CMD ["sh", "-c", "/usr/local/bin/wait-for-it.sh db:3306 --timeout=60 --strict -- php migrate.php && php init_db.php && php fetch_rates.php && apache2-foreground"]
