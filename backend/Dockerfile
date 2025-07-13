@@ -17,4 +17,4 @@ COPY . .
 # Expose port 80
 EXPOSE 80
 
-CMD ["apache2-foreground"]
+CMD php migrate.php && php init_db.php && apache2-foreground
