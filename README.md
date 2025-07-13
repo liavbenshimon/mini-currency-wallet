@@ -24,7 +24,23 @@ Replace `<repository-url>` with the actual URL of this repository.
 
 ---
 
-## 2. Start All Services with Docker Compose
+## 2. Environment Variables (.env)
+
+Before running the project, make sure you have a `.env` file in the project root with the following content (edit values as needed):
+
+```env
+# Database configuration
+MYSQL_DATABASE=currency_wallet
+MYSQL_USER=user
+MYSQL_PASSWORD=password
+MYSQL_ROOT_PASSWORD=rootpassword
+```
+
+> **Note:** These values must match the database settings in `docker-compose.yml` and `backend/config.php`.
+
+---
+
+## 3. Start All Services with Docker Compose
 
 Run:
 
@@ -44,7 +60,17 @@ This will build and start all required services:
 
 ---
 
-## 3. Access the Application
+## 4. Database Migrations (Automatic)
+
+- The backend includes an automatic migration script (`backend/migrate.php`).
+- Every time you start the project with Docker Compose, the migration script will run before any seed data is inserted.
+- This ensures your database schema is always up-to-date with the latest structure.
+- **You do not need to manually create or update tables.**
+- If you want to add new tables or columns, simply update `migrate.php` with the relevant SQL.
+
+---
+
+## 5. Access the Application
 
 - **Main App:** [http://localhost](http://localhost)
 - **Database Admin (phpMyAdmin):** [http://localhost:8080](http://localhost:8080)
@@ -53,7 +79,7 @@ This will build and start all required services:
 
 ---
 
-## 4. (Optional) Add Demo Exchange Rate Data
+## 6. (Optional) Add Demo Exchange Rate Data
 
 If the exchange rates graph is empty, you can add demo data for testing:
 
@@ -83,7 +109,7 @@ INSERT INTO exchange_rates (currency, rate, date) VALUES
 
 ---
 
-## 5. Useful Docker Commands
+## 7. Useful Docker Commands
 
 - **Stop all services:**
   ```sh
@@ -100,7 +126,7 @@ INSERT INTO exchange_rates (currency, rate, date) VALUES
 
 ---
 
-## 6. Troubleshooting
+## 8. Troubleshooting
 
 - **App not loading?**
   - Make sure Docker Desktop is running
@@ -117,10 +143,11 @@ INSERT INTO exchange_rates (currency, rate, date) VALUES
 
 ---
 
-## 7. Project Structure (Overview)
+## 9. Project Structure (Overview)
 
 - `app/` – Frontend (React/Next.js)
 - `backend/` – Backend (PHP API scripts)
+- `backend/migrate.php` – Database migration script (runs automatically)
 - `backend/fetch_rates.php` – Script to fetch real exchange rates from Bank of Israel
 - `backend/get_rates.php` – API endpoint for frontend to get rates
 - `backend/save_transaction.php` – API endpoint to save transactions
@@ -130,12 +157,12 @@ INSERT INTO exchange_rates (currency, rate, date) VALUES
 
 ---
 
-## 8. No Need for Manual Node.js or PHP Setup!
+## 10. No Need for Manual Node.js or PHP Setup!
 
 All dependencies and services run inside Docker containers. You do **not** need to install Node.js, PHP, or MySQL on your machine.
 
 ---
 
-## 9. Need Help?
+## 11. Need Help?
 
 If you run into issues, check the troubleshooting section above or contact the project maintainer.
