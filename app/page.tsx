@@ -89,7 +89,7 @@ export default function MiniCurrencyWallet() {
       const start = new Date();
       start.setDate(end.getDate() - 9);
       const format = (d: Date) => d.toISOString().slice(0, 10);
-      const url = `/backend/get_rates.php?currency=USD&start=${format(
+      const url = `http://localhost:3001/backend/get_rates.php?currency=USD&start=${format(
         start
       )}&end=${format(end)}`;
       try {
